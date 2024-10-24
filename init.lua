@@ -34,7 +34,6 @@ local function load_file(file_path)
     end
     local content = file:read("*a")
     file:close()
-
     return content
 end
 
@@ -46,7 +45,7 @@ local function parse_content(content)
         print("JSON empty, please add a directory with :addProject")
         return {}
     else
-        local ok, result = pcall(vim.json.decode(content))
+        local ok, result = pcall(vim.json.decode, content)
         if not ok then
             print("Error parsing json: ".. result)
             return nil
@@ -58,7 +57,8 @@ end
 
 local function load_projects()
     local content = load_file(data_file)
-    return parse_content(content)
+    local parsed_content = parse_content(content)
+    return parsed_content
 end
 
 local function is_in_project(projects)
@@ -67,10 +67,16 @@ local function is_in_project(projects)
         return nil
     end
     for _, project in ipairs(projects) do
-        if cwd == vim.fn.expand(project) then
+        local expanded_dir = vim.fn.expand(project.directory)
+        expanded_dir = expanded_dir:sub(1, -2)
+        print("cwd:", cwd, "expanded:", expanded_dir)
+        print("expanded == cwd:", (expanded_dir == cwd))
+        if cwd == expanded_dir then
+            print("In an existing project directory")
             return true
         end
     end
+    print("Not in existing project directory")
     return false
 end
 
@@ -99,13 +105,14 @@ end
 -- end
 --
 function M.init()
-    local project_list = load_projects()
     if not file_exists() then
         create_file()
     end
-    if not is_in_project(project_list) then
+    local project_list = load_projects()
+    local in_project = is_in_project(project_list)
+    if not in_project then
         list_projects(project_list)
-    elseif is_in_project() then
+    elseif in_project then
         vim.defer_fn(function()
             require('nvim-tree.api').tree.open()
         end, 10)
