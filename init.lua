@@ -1,6 +1,6 @@
--- ~/.config/nvim/lua/my_plugin/init.lua
 local M = {}
-local data_file = "proj-dirs.json"
+local data_dir = vim.fn.stdpath("data") .. "/proman"
+local data_file = data_dir .. "/proj-dirs.json"
 local cwd = vim.loop.cwd()
 
 -- check file exists
@@ -15,13 +15,18 @@ local function file_exists()
 end
 
 local function create_file()
+    -- checking directory viability
+    if vim.fn.isdirectory(data_file) then
+        print("Creating parent directories")
+        vim.fn.mkdir(data_dir, "p")
+    end
     print("'proj-dirs' file does not exist. Creating file...")
     local file = io.open(data_file, "w")
     if not file then
-        print("'proj-dirs' file failed to open")
+        print("'projdirs' file failed to open")
         return nil
     end
-    file:write("")
+    file:write("[]")
     file:close()
 end
 
@@ -69,8 +74,6 @@ local function is_in_project(projects)
     for _, project in ipairs(projects) do
         local expanded_dir = vim.fn.expand(project.directory)
         expanded_dir = expanded_dir:sub(1, -2)
-        print("cwd:", cwd, "expanded:", expanded_dir)
-        print("expanded == cwd:", (expanded_dir == cwd))
         if cwd == expanded_dir then
             print("In an existing project directory")
             return true
@@ -109,13 +112,20 @@ function M.init()
         create_file()
     end
     local project_list = load_projects()
-    local in_project = is_in_project(project_list)
-    if not in_project then
-        list_projects(project_list)
-    elseif in_project then
-        vim.defer_fn(function()
+    if #project_list ==0 then
+        vim.defer_fn(function ()
+            vim.cmd('echo "Project list empty. Please add project with :AddProject command"')
             require('nvim-tree.api').tree.open()
-        end, 10)
+        end, 50)
+    elseif #project_list > 0 then
+        local in_project = is_in_project(project_list)
+        if not in_project then
+            list_projects(project_list)
+        elseif in_project then
+            vim.defer_fn(function()
+                require('nvim-tree.api').tree.open()
+            end, 10)
+        end
     end
 end
 
