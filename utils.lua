@@ -73,7 +73,6 @@ function M.is_in_project(projects)
     end
     for _, project in ipairs(projects) do
         local expanded_dir = vim.fn.expand(project.directory)
-        expanded_dir = expanded_dir:sub(1, -2)
         if cwd == expanded_dir then
             print("In an existing project directory")
             return true
@@ -91,20 +90,48 @@ function M.list_projects(projects)
     if #projects == 0 then
         print("No projects. Add current directory to projects with :AddProject")
     else
-        vim.ui.select(projects, {prompt = 'Select a project:'}, function(choice)
+        local project_name_list = {}
+        local project_dir_list = {}
+        for _, project in ipairs(projects) do
+            table.insert(project_name_list, project.name)
+            table.insert(project_dir_list, vim.fn.expand(project.directory))
+        end
+        vim.ui.select(project_name_list, {prompt = 'Select a project:'}, function(choice, id)
             if choice then
-                vim.cmd("cd " .. vim.fn.expand(choice))
+                vim.cmd("cd " .. vim.fn.expand(project_dir_list[id]))
+                vim.defer_fn(function ()
+                    require('nvim-tree.api').tree.open()
+                end, 10)
             end
         end)
     end
 end
 
--- function M.add_Project()
---    local projects = M.load_projects()
---    local current_dir = cwd
---    if projects then
---     
---    end
--- end
+function M.add_Project(project_name)
+   local projects = M.load_projects()
+   if projects ~= nil then
+       for _, project in ipairs(projects) do
+           local expanded_dir = vim.fn.expand(project.directory)
+           if project_name == project.name then
+               vim.cmd('echo "Error: Directory already exists with name"')
+               return nil
+           elseif expanded_dir == cwd then
+               vim.cmd('echo "Error: Project directory already exists"')
+               return nil
+           end
+       end
+       local new_project = {name = project_name, directory = cwd}
+       table.insert(projects, new_project)
+       local new_file = io.open(data_file, "w+")
+       if new_file == nil then
+           vim.cmd('echo "Unable to open file"')
+           return nil
+       end
+       local new_json = vim.json.encode(projects)
+       new_file:write(new_json)
+   elseif projects == nil then
+       print("Unable to load projects")
+   end
+end
 
 return M
