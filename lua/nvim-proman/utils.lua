@@ -30,8 +30,8 @@ function M.create_file()
     file:close()
 end
 
--- create file if doesnt exist
-function M.load_file(file_path)
+---@return string|nil content loads JSON config file
+function M.load_json(file_path)
     local file = io.open(file_path, "r")
     if not file then
         print("Could not open file")
@@ -42,7 +42,8 @@ function M.load_file(file_path)
     return content
 end
 
-function M.parse_content(content)
+---@return table|nil result JSON string parsed into a Lua table
+function M.parse_json(content)
     if not content then
         print("Error: File content is nil")
         return nil
@@ -59,29 +60,37 @@ function M.parse_content(content)
     end
 end
 
-
+--- Gets projects table and parses content from JSON
+---@return table|nil parsed_content Projects table
 function M.load_projects()
-    local content = M.load_file(data_file)
-    local parsed_content = M.parse_content(content)
+    local content = M.load_json(data_file)
+    local parsed_content = M.parse_json(content)
     return parsed_content
 end
 
+---Checks if current nvim instance is within one of the project list directories
+---@param projects table
+---@return boolean|nil boolean True when cwd is within projects dirs, otherwise false
 function M.is_in_project(projects)
     if not projects then
         print("Error loading projects")
         return nil
-    end
-    for _, project in ipairs(projects) do
-        local expanded_dir = vim.fn.expand(project.directory)
-        if cwd == expanded_dir then
-            print("In an existing project directory")
-            return true
+    else
+        for _, project in ipairs(projects) do
+            local expanded_dir = vim.fn.expand(project.directory)
+            if cwd == expanded_dir then
+                print("In an existing project directory")
+                return true
+            end
         end
+        print("Not in existing project directory")
+        return false
     end
-    print("Not in existing project directory")
-    return false
 end
 
+---Creates the prompt for choosing project list
+---@param projects table
+---@return nil
 function M.list_projects(projects)
     if not projects then
         print("Could not load projects")
@@ -98,15 +107,56 @@ function M.list_projects(projects)
         end
         vim.ui.select(project_name_list, {prompt = 'Select a project:'}, function(choice, id)
             if choice then
-                vim.cmd("cd " .. vim.fn.expand(project_dir_list[id]))
-                vim.defer_fn(function ()
-                    require('nvim-tree.api').tree.open()
-                end, 10)
+                if M.is_dir_valid(project_dir_list[id]) then
+                    vim.cmd("cd " .. vim.fn.expand(project_dir_list[id]))
+                    vim.defer_fn(function ()
+                        require('nvim-tree.api').tree.open()
+                    end, 10)
+                else
+                    local options = {'yes', 'no'}
+                    vim.ui.select(options, {prompt = '\nDirectory does not exist would you like to remove it?'}, function(chosen)
+                        if chosen == 'yes' then
+                            vim.cmd('echo "\nDeleted directory"')
+                        else
+                            print("\nKeeping directory")
+                        end
+                    end)
+                end
             end
         end)
     end
 end
 
+--- Checks if directory exists
+---@param dir string
+---@return boolean|nil stat Returns true if directory is accessible, otherwise false
+function M.is_dir_valid(dir)
+    local stat = vim.loop.fs_stat(dir)
+    local is_valid = stat and stat.type == "directory"
+    return is_valid
+end
+
+---Removes project from project listing
+---@param dir string
+function M.remove_project(dir)
+    local projects = M.load_projects()
+    local removing_dir = dir or cwd
+    if projects ~= nil then
+        local new_project_list = {}
+            for _, project in ipairs(projects) do
+                local expanded_dir = vim.fn.expand(project.directory)
+                local current_proj_table = {name = project.name, directory = expanded_dir}
+                if removing_dir ~= expanded_dir then
+                    table.insert(new_project_list, current_proj_table)
+                end
+            end
+    else
+        vim.cmd('echo "Unable to fetch projects list"')
+    end
+end
+
+--- Appends project name and directory the project json list
+--- @param project_name string
 function M.add_Project(project_name)
    local projects = M.load_projects()
    if projects ~= nil then
