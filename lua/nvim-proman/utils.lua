@@ -1,6 +1,6 @@
 local M ={}
 
-local cwd = vim.loop.cwd()
+local cwd = vim.fn.getcwd()
 local data_dir = vim.fn.stdpath("data") .. "/proman"
 local data_file = data_dir .. "/proj-dirs.json"
 
@@ -26,13 +26,13 @@ function M.create_file()
         print("'projdirs' file failed to open")
         return nil
     end
-    file:write("[]")
+    file:write("{}")
     file:close()
 end
 
 ---@return string|nil content loads JSON config file
-function M.load_json(file_path)
-    local file = io.open(file_path, "r")
+function M.load_json()
+    local file = io.open(data_file, "r")
     if not file then
         print("Could not open file")
         return nil
@@ -63,7 +63,7 @@ end
 --- Gets projects table and parses content from JSON
 ---@return table|nil parsed_content Projects table
 function M.load_projects()
-    local content = M.load_json(data_file)
+    local content = M.load_json()
     local parsed_content = M.parse_json(content)
     return parsed_content
 end
@@ -86,6 +86,25 @@ function M.is_in_project(projects)
         print("Not in existing project directory")
         return false
     end
+end
+---Checks if the project directory is in the 
+---(Using the interger as falsy value for logic)
+---@return integer | nil index Returns index of directory if in project_list
+---@param dir string
+function M.is_in_project_list(dir)
+    local projects = M.load_projects()
+    if projects ~= nil then
+        for index, project in ipairs(projects) do
+            local expanded_dir = vim.fn.expand(project.directory)
+            if dir == expanded_dir then
+                return index
+            end
+        end
+        return nil
+    else
+        print("Projects nil")
+    end
+    return 1
 end
 
 ---Creates the prompt for choosing project list
@@ -113,17 +132,21 @@ function M.list_projects(projects)
                         require('nvim-tree.api').tree.open()
                     end, 10)
                 else
-                    local options = {'yes', 'no'}
-                    vim.ui.select(options, {prompt = '\nDirectory does not exist would you like to remove it?'}, function(chosen)
-                        if chosen == 'yes' then
-                            vim.cmd('echo "\nDeleted directory"')
-                        else
-                            print("\nKeeping directory")
-                        end
-                    end)
+                    M.remove_project(project_dir_list[id])
                 end
             end
         end)
+    end
+end
+
+function M.cd_to_dir(dir)
+    if M.is_dir_valid(dir) then
+        vim.defer_fn(function ()
+            require('nvim-tree.api').tree.open()
+            require('nvim-tree.actions').root.change_dir.fn(dir,true)
+        end, 10)
+    else
+        M.remove_project(dir)
     end
 end
 
@@ -137,19 +160,25 @@ function M.is_dir_valid(dir)
 end
 
 ---Removes project from project listing
----@param dir string
+---@param dir string | nil
 function M.remove_project(dir)
+    dir = dir or vim.fn.getcwd()
     local projects = M.load_projects()
-    local removing_dir = dir or cwd
     if projects ~= nil then
         local new_project_list = {}
-            for _, project in ipairs(projects) do
-                local expanded_dir = vim.fn.expand(project.directory)
-                local current_proj_table = {name = project.name, directory = expanded_dir}
-                if removing_dir ~= expanded_dir then
-                    table.insert(new_project_list, current_proj_table)
-                end
+        for _, project in ipairs(projects) do
+            local expanded_dir = vim.fn.expand(project.directory)
+            local current_proj_table = {name = project.name, directory = expanded_dir}
+            if dir ~= expanded_dir then
+                table.insert(new_project_list, current_proj_table)
             end
+        end
+        local new_json = vim.json.encode(new_project_list)
+        local json_file = io.open(data_file, "w+")
+        if json_file ~= nil then
+            json_file:write(new_json)
+            json_file:close()
+        end
     else
         vim.cmd('echo "Unable to fetch projects list"')
     end
@@ -158,6 +187,7 @@ end
 --- Appends project name and directory the project json list
 --- @param project_name string
 function M.add_Project(project_name)
+-- TODO: need to put the new added project at the top
    local projects = M.load_projects()
    if projects ~= nil then
        for _, project in ipairs(projects) do
@@ -179,6 +209,7 @@ function M.add_Project(project_name)
        end
        local new_json = vim.json.encode(projects)
        new_file:write(new_json)
+       new_file:close()
    elseif projects == nil then
        print("Unable to load projects")
    end

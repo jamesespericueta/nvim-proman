@@ -2,6 +2,7 @@ local M = {}
 
 local util = require('nvim-proman.utils')
 local commands = require("nvim-proman.commands")
+local popups   = require("nvim-proman.popups")
 
 function M.init()
     commands.setup()
@@ -20,7 +21,9 @@ function M.init()
             elseif #project_list > 0 then
                 local in_project = util.is_in_project(project_list)
                 if not in_project then
-                    util.list_projects(project_list)
+                    vim.defer_fn(function ()
+                        popups.open_telescope_picker()
+                    end, 10)
                 elseif in_project then
                     vim.defer_fn(function ()
                         require('nvim-tree.api').tree.open()
