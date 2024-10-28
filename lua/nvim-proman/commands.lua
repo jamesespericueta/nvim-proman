@@ -46,13 +46,7 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'PromanDebug',
     function ()
-        local dir = "~/Documents/"
-        local completions = vim.fn.getcompletion( dir, "dir")
-        for _, directory in ipairs(completions) do
-            print(directory)
-        end
-        -- local is_valid_path = util.is_dir_valid("~/lkjasdlkfjadfk")
-        -- print(is_valid_path)
+        popups.not_in_project_popup()
     end,
     {
         nargs = 0,

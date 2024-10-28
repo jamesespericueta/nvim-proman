@@ -7,7 +7,7 @@ local actions = require "telescope.actions"
 local util = require('nvim-proman.utils')
 local entry_display = require "telescope.pickers.entry_display"
 local action_state = require "telescope.actions.state"
-local Path = require('plenary.path')
+local Popup = require('plenary.popup')
 
 local results = {}
 
@@ -28,7 +28,15 @@ local make_display = function (entry)
 end
 
 function M.not_in_project_popup()
-    print("Not in an existing project, would you like to")
+    Popup.create({
+        "Testing",
+        "heres some more"
+    }, {
+        padding = {3,3,3,3},
+        border = {},
+        title = "Add Directory?",
+        enter = false
+    })
 end
 
 M.subdir_picker = function (opts)
