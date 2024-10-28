@@ -3,6 +3,7 @@ local M ={}
 local cwd = vim.fn.getcwd()
 local data_dir = vim.fn.stdpath("data") .. "/proman"
 local data_file = data_dir .. "/proj-dirs.json"
+local Path = require("plenary.path")
 
 function M.file_exists()
     local f = io.open(data_file, "r")
@@ -138,7 +139,7 @@ function M.list_projects(projects)
         end)
     end
 end
-
+-- 
 function M.cd_to_dir(dir)
     if M.is_dir_valid(dir) then
         vim.defer_fn(function ()
@@ -154,7 +155,8 @@ end
 ---@param dir string
 ---@return boolean|nil stat Returns true if directory is accessible, otherwise false
 function M.is_dir_valid(dir)
-    local stat = vim.loop.fs_stat(dir)
+    local expanded_dir = vim.fn.expand(dir)
+    local stat = vim.loop.fs_stat(expanded_dir)
     local is_valid = stat and stat.type == "directory"
     return is_valid
 end
@@ -187,6 +189,7 @@ end
 --- Appends project name and directory the project json list
 --- @param project_name string
 function M.add_Project(project_name)
+    cwd = vim.fn.getcwd()
 -- TODO: need to put the new added project at the top
    local projects = M.load_projects()
    if projects ~= nil then
@@ -213,6 +216,20 @@ function M.add_Project(project_name)
    elseif projects == nil then
        print("Unable to load projects")
    end
+end
+
+---Gets subdirectories of input directory(if any)
+---@param input any
+function M.get_subdirectories(input)
+    local subdirs = {}
+    local is_directory = M.is_dir_valid(input)
+    if is_directory then
+        local directories = vim.fn.getcompletion(input, "dir")
+        for _, directory in ipairs(directories) do
+            table.insert(subdirs, directory)
+        end
+    end
+    return subdirs
 end
 
 return M
