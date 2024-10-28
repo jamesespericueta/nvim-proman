@@ -9,6 +9,8 @@ local entry_display = require "telescope.pickers.entry_display"
 local action_state = require "telescope.actions.state"
 local Path = require('plenary.path')
 
+local results = {}
+
 
 local displayer = entry_display.create {
     separator = " ",
@@ -28,32 +30,13 @@ end
 function M.not_in_project_popup()
     print("Not in an existing project, would you like to")
 end
--- might use later when i learn how tf args are passed
---local function input_filter_cb(prompt_buf, input)
---    local results = {}
---    if Path:new(input):is_dir() then
---        results = util.get_subdirectories(input)
---    end
---    local current_picker = action_state.get_current_picker(prompt_buf)
---    current_picker:refresh(
---        finders.new_table({
---            results = results,
---            entry_maker = function(entry)
---                return {
---                    value =entry,
---                    display = entry,
---                    ordinal = entry
---                }
---            end,
---        }),
---        {reset_prompt = false}
---    )
---end
+
 M.subdir_picker = function (opts)
     opts = opts or {}
-    local prompt_buf
     local init_root_dir = "~/"
     local init_dirs = util.get_subdirectories(init_root_dir)
+    local current_picker
+    local prev_prompt
     pickers.new(opts, {
         prompt_title = "Directory being added",
         finder = finders.new_table({
@@ -68,34 +51,40 @@ M.subdir_picker = function (opts)
         }),
         sorter = conf.generic_sorter({}),
         attach_mappings = function (prompt_bufnr, map)
-            prompt_buf = prompt_bufnr
+            current_picker = action_state.get_current_picker(prompt_bufnr)
             actions.select_default:replace( function ()
-                actions.close(prompt_bufnr)
-                print("Your selected: " .. action_state.get_selected_entry())
+            actions.close(prompt_bufnr)
+            vim.defer_fn(function ()
+                util.cd_to_dir(action_state.get_selected_entry().value)
+            end, 10)
             end)
             return true
         end,
         on_input_filter_cb = function (input)
-            local results = {}
-            local valid_path = util.is_dir_valid(input)
-            if valid_path then
-                results = util.get_subdirectories(input)
-            end
-            action_state.get_current_picker(prompt_buf):refresh(
-                finders.new_table({
-                    results = results,
-                    entry_maker = function(entry)
-                        return {
-                            value = entry,
-                            display = entry,
-                            ordinal = entry
-                        }
-                    end
-                }),
-                {
-                    reset_prompt = false
-                }
-            )
+            vim.defer_fn(function ()
+                input = current_picker:_get_prompt()
+                local valid_path = util.is_dir_valid(input)
+                local repeating = input == prev_prompt
+                if valid_path and not repeating then
+                    prev_prompt = input
+                    results = util.get_subdirectories(input)
+                    current_picker:refresh(
+                    finders.new_table({
+                        results = results,
+                        entry_maker = function(entry)
+                            return {
+                                value = entry,
+                                display = entry,
+                                ordinal = entry
+                            }
+                        end
+                    }),
+                    {
+                        reset_prompt = false
+                    }
+                    )
+                end
+            end, 10)
         end
     }):find()
 end

@@ -219,8 +219,10 @@ function M.add_Project(project_name)
 end
 
 ---Gets subdirectories of input directory(if any)
----@param input any
+---@param input string
+---@return table subdirs Table of subdirectories (if the input directory is valid, other wise empty table)
 function M.get_subdirectories(input)
+    print(input)
     local subdirs = {}
     local is_directory = M.is_dir_valid(input)
     if is_directory then
