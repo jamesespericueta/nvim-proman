@@ -15,6 +15,8 @@ function M.file_exists()
     end
 end
 
+---Creates a json file for local storage of directory data
+---@return nil
 function M.create_file()
     -- checking directory viability
     if vim.fn.isdirectory(data_file) then
@@ -69,24 +71,34 @@ function M.load_projects()
     return parsed_content
 end
 
+---Checks if current dir is subdirectory of possible parent
+---@param parent_dir any
+---@return boolean
+function M.in_proj_subdir(parent_dir)
+    cwd = vim.fn.getcwd()
+    parent_dir = vim.fn.expand(parent_dir)
+    local expanded_cwd = vim.fn.expand(cwd)
+    return expanded_cwd:sub(1, #parent_dir) == parent_dir
+end
+
+
 ---Checks if current nvim instance is within one of the project list directories
 ---@param projects table
----@return boolean|nil boolean True when cwd is within projects dirs, otherwise false
+---@return table|nil table Populates table with first value index being boolean and second being location containing the directory of project
 function M.is_in_project(projects)
     if not projects then
         print("Error loading projects")
         return nil
-    else
-        for _, project in ipairs(projects) do
-            local expanded_dir = vim.fn.expand(project.directory)
-            if cwd == expanded_dir then
-                print("In an existing project directory")
-                return true
-            end
-        end
-        print("Not in existing project directory")
-        return false
     end
+    for _, project in ipairs(projects) do
+        local expanded_dir = vim.fn.expand(project.directory)
+        if M.in_proj_subdir(expanded_dir) then
+            print("In an existing project directory")
+            return {true, project.directory}
+        end
+    end
+    print("Not in existing project directory")
+    return {false}
 end
 ---Checks if the project directory is in the 
 ---(Using the interger as falsy value for logic)

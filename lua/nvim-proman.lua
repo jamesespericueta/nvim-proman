@@ -20,13 +20,15 @@ function M.init()
                 end, 50)
             elseif #project_list > 0 then
                 local in_project = util.is_in_project(project_list)
-                if not in_project then
+                if in_project == nil then
+                    print("Project check failed")
+                elseif not in_project[1] then
                     vim.defer_fn(function ()
                         popups.open_telescope_picker()
                     end, 10)
                 elseif in_project then
                     vim.defer_fn(function ()
-                        require('nvim-tree.api').tree.open()
+                        util.cd_to_dir(in_project[2])
                     end, 10)
                 end
             end

@@ -15,6 +15,7 @@ function M.setup()
         nargs = 1,
         desc = "Add a project to the project manager list"
     })
+
     vim.api.nvim_create_user_command(
     'RemoveProject',
     function ()
@@ -24,6 +25,7 @@ function M.setup()
         nargs=0,
         desc = "Remove current project listing (if current project is in the listing)"
     })
+
     vim.api.nvim_create_user_command(
     'PromanPopUp',
     function ()
@@ -33,6 +35,7 @@ function M.setup()
         nargs = 0,
         desc = "Opens up the project previewer"
     })
+
     vim.api.nvim_create_user_command(
     'PromanSubDir',
     function ()
@@ -46,7 +49,7 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'PromanDebug',
     function ()
-        popups.not_in_project_popup()
+        print(Path:new().expand("~/Documents/"))
     end,
     {
         nargs = 0,

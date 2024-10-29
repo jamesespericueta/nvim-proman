@@ -5,11 +5,11 @@ Neovim project manager plugin made to solve all my related inconveniences
 
 (I know theres project managers out there but they don't do everything I want them to do and the good ones have been abandoned) - https://xkcd.com/927/
 
-Have you ever way too many projects and requently switch between them all the time???
+Have you ever had way too many projects and frequently switch between them all the time???
 
 Tired of making aliases or scripts to change to your frequent project directories?
 
-Want to navigate ur projects at the speed a somewhat fit middle aged dude with a mustache?
+Want to navigate ur projects at the speed of a somewhat fit middle aged dude with a mustache?
 
 Well oh boy do I have the potential project for you. (I hope I follow thru w this project)
 - If u stumble upon this searching for a project manager with a whole lot of functionality, feel free to request features that aren't listed in the TODO!
@@ -31,6 +31,7 @@ Obviously this would annoy me so I'm going through different configuration possi
 * [x] Pop up menus
 * [x] Adding directory without needing to "cd" with subdirectory finder
 * [x] I've added other features but forgot what they were. I really should be more organized...
+* [x] checking if in project list subdirectory and cd to the project root for nvim-tree
 
 ## TODO
 * [ ] Use plenary for anything Path related
