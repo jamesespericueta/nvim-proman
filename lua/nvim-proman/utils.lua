@@ -3,8 +3,9 @@ local M ={}
 local cwd = vim.fn.getcwd()
 local data_dir = vim.fn.stdpath("data") .. "/proman"
 local data_file = data_dir .. "/proj-dirs.json"
-local Path = require("plenary.path")
 
+---Checks if the project list file exists and returns boolean
+---@return boolean
 function M.file_exists()
     local f = io.open(data_file, "r")
     if f ~= nil then
@@ -33,6 +34,7 @@ function M.create_file()
     file:close()
 end
 
+--- returns a string of the user json file
 ---@return string|nil content loads JSON config file
 function M.load_json()
     local file = io.open(data_file, "r")
@@ -45,7 +47,8 @@ function M.load_json()
     return content
 end
 
----@return table|nil result JSON string parsed into a Lua table
+--- Takes json file string and converts to lua table
+---@return table|nil result JSON in Lua table format
 function M.parse_json(content)
     if not content then
         print("Error: File content is nil")
@@ -83,75 +86,21 @@ end
 
 
 ---Checks if current nvim instance is within one of the project list directories
----@param projects table
 ---@return table|nil table Populates table with first value index being boolean and second being location containing the directory of project
-function M.is_in_project(projects)
-    if not projects then
-        print("Error loading projects")
-        return nil
-    end
-    for _, project in ipairs(projects) do
+function M.is_in_project()
+    local is_in = {false}
+    M.iterate_projects(function(project)
         local expanded_dir = vim.fn.expand(project.directory)
         if M.in_proj_subdir(expanded_dir) then
             print("In an existing project directory")
-            return {true, project.directory}
+            is_in = {true, project.directory}
         end
-    end
-    print("Not in existing project directory")
-    return {false}
-end
----Checks if the project directory is in the 
----(Using the interger as falsy value for logic)
----@return integer | nil index Returns index of directory if in project_list
----@param dir string
-function M.is_in_project_list(dir)
-    local projects = M.load_projects()
-    if projects ~= nil then
-        for index, project in ipairs(projects) do
-            local expanded_dir = vim.fn.expand(project.directory)
-            if dir == expanded_dir then
-                return index
-            end
-        end
-        return nil
-    else
-        print("Projects nil")
-    end
-    return 1
+    end)
+    return is_in
 end
 
----Creates the prompt for choosing project list
----@param projects table
----@return nil
-function M.list_projects(projects)
-    if not projects then
-        print("Could not load projects")
-        return nil
-    end
-    if #projects == 0 then
-        print("No projects. Add current directory to projects with :AddProject")
-    else
-        local project_name_list = {}
-        local project_dir_list = {}
-        for _, project in ipairs(projects) do
-            table.insert(project_name_list, project.name)
-            table.insert(project_dir_list, vim.fn.expand(project.directory))
-        end
-        vim.ui.select(project_name_list, {prompt = 'Select a project:'}, function(choice, id)
-            if choice then
-                if M.is_dir_valid(project_dir_list[id]) then
-                    vim.cmd("cd " .. vim.fn.expand(project_dir_list[id]))
-                    vim.defer_fn(function ()
-                        require('nvim-tree.api').tree.open()
-                    end, 10)
-                else
-                    M.remove_project(project_dir_list[id])
-                end
-            end
-        end)
-    end
-end
--- 
+---safely change to directory using nvim-tree
+---@param dir string directory to cd to
 function M.cd_to_dir(dir)
     if M.is_dir_valid(dir) then
         vim.defer_fn(function ()
@@ -178,23 +127,22 @@ end
 function M.remove_project(dir)
     dir = dir or vim.fn.getcwd()
     local projects = M.load_projects()
-    if projects ~= nil then
-        local new_project_list = {}
-        for _, project in ipairs(projects) do
-            local expanded_dir = vim.fn.expand(project.directory)
-            local current_proj_table = {name = project.name, directory = expanded_dir}
-            if dir ~= expanded_dir then
-                table.insert(new_project_list, current_proj_table)
-            end
+
+    if projects == nil then return end
+
+    local new_project_list = {}
+    for _, project in ipairs(projects) do
+        local expanded_dir = vim.fn.expand(project.directory)
+        local current_proj_table = {name = project.name, directory = expanded_dir}
+        if dir ~= expanded_dir then
+            table.insert(new_project_list, current_proj_table)
         end
-        local new_json = vim.json.encode(new_project_list)
-        local json_file = io.open(data_file, "w+")
-        if json_file ~= nil then
-            json_file:write(new_json)
-            json_file:close()
-        end
-    else
-        vim.cmd('echo "Unable to fetch projects list"')
+    end
+    local new_json = vim.json.encode(new_project_list)
+    local json_file = io.open(data_file, "w+")
+    if json_file ~= nil then
+        json_file:write(new_json)
+        json_file:close()
     end
 end
 
@@ -202,32 +150,34 @@ end
 --- @param project_name string
 function M.add_Project(project_name)
     cwd = vim.fn.getcwd()
--- TODO: need to put the new added project at the top
-   local projects = M.load_projects()
-   if projects ~= nil then
-       for _, project in ipairs(projects) do
-           local expanded_dir = vim.fn.expand(project.directory)
-           if project_name == project.name then
-               vim.cmd('echo "Error: Directory already exists with name"')
-               return nil
-           elseif expanded_dir == cwd then
-               vim.cmd('echo "Error: Project directory already exists"')
-               return nil
-           end
-       end
-       local new_project = {name = project_name, directory = cwd}
-       table.insert(projects, new_project)
-       local new_file = io.open(data_file, "w+")
-       if new_file == nil then
-           vim.cmd('echo "Unable to open file"')
-           return nil
-       end
-       local new_json = vim.json.encode(projects)
-       new_file:write(new_json)
-       new_file:close()
-   elseif projects == nil then
-       print("Unable to load projects")
-   end
+    -- TODO: need to put the new added project at the top
+    local projects = M.load_projects()
+    if projects == nil then
+        print("could not load projects")
+        return
+    end
+    local exists =  M.iterate_projects(function (project)
+        local expanded_dir = vim.fn.expand(project.directory)
+        if project_name == project.name then
+            vim.cmd('echo "Error: Directory already exists with name"')
+            return nil
+        elseif expanded_dir == cwd then
+            vim.cmd('echo "Error: Project directory already exists"')
+            return nil
+        end
+    end)
+    if exists then return end
+
+    local new_project = {name = project_name, directory = cwd}
+    table.insert(projects, new_project)
+    local new_file = io.open(data_file, "w+")
+    if new_file == nil then
+        vim.cmd('echo "Unable to open file"')
+        return nil
+    end
+    local new_json = vim.json.encode(projects)
+    new_file:write(new_json)
+    new_file:close()
 end
 
 ---Gets subdirectories of input directory(if any)
@@ -237,13 +187,22 @@ function M.get_subdirectories(input)
     print(input)
     local subdirs = {}
     local is_directory = M.is_dir_valid(input)
-    if is_directory then
-        local directories = vim.fn.getcompletion(input, "dir")
-        for _, directory in ipairs(directories) do
-            table.insert(subdirs, directory)
-        end
+
+    if not is_directory then return subdirs end
+
+    local directories = vim.fn.getcompletion(input, "dir")
+    for _, directory in ipairs(directories) do
+        table.insert(subdirs, directory)
     end
     return subdirs
+end
+
+function M.iterate_projects(func)
+    local projects = M.load_projects()
+    if projects == nil then return end
+    for _, project in ipairs(projects) do
+        func(project)
+    end
 end
 
 return M

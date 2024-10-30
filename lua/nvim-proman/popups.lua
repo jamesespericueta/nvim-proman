@@ -127,4 +127,26 @@ M.open_telescope_picker = function(opts)
     end,
 }):find()
 end
+
+function M.handle_init_popups(project_list)
+    if #project_list ==0 then
+        vim.defer_fn(function ()
+            require('nvim-tree.api').tree.open()
+            vim.cmd('echo "Project list empty. Please add project with :AddProject command"')
+        end, 50)
+    elseif #project_list > 0 then
+        local in_project = util.is_in_project()
+        if in_project == nil then
+            print("Project check failed")
+        elseif not in_project[1] then
+            vim.defer_fn(function ()
+                M.open_telescope_picker()
+            end, 10)
+        elseif in_project then
+            vim.defer_fn(function ()
+                util.cd_to_dir(in_project[2])
+            end, 10)
+        end
+    end
+end
 return M

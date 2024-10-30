@@ -49,7 +49,8 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'PromanDebug',
     function ()
-        print(Path:new().expand("~/Documents/"))
+        local path = Path:new("/Users/vrowhat/Documents/")
+        print(path:exists())
     end,
     {
         nargs = 0,

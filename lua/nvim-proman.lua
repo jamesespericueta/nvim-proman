@@ -6,35 +6,17 @@ local popups   = require("nvim-proman.popups")
 
 function M.init()
     commands.setup()
-    if not util.file_exists() then
-        util.create_file()
-    end
+    if not util.file_exists() then util.create_file() end
 
-    if vim.fn.argc() == 0 then
-        local project_list = util.load_projects()
-        if project_list ~= nil then
-            if #project_list ==0 then
-                vim.defer_fn(function ()
-                    require('nvim-tree.api').tree.open()
-                    vim.cmd('echo "Project list empty. Please add project with :AddProject command"')
-                end, 50)
-            elseif #project_list > 0 then
-                local in_project = util.is_in_project(project_list)
-                if in_project == nil then
-                    print("Project check failed")
-                elseif not in_project[1] then
-                    vim.defer_fn(function ()
-                        popups.open_telescope_picker()
-                    end, 10)
-                elseif in_project then
-                    vim.defer_fn(function ()
-                        util.cd_to_dir(in_project[2])
-                    end, 10)
-                end
-            end
-        end
-    end
+    if vim.fn.argc() ~= 0 then return end
 
+    local project_list = util.load_projects()
+
+    if not project_list then return end
+
+    if project_list ~= nil then
+        popups.handle_init_popups(project_list)
+    end
 end
 
 return M
