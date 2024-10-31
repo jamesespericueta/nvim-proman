@@ -26,17 +26,43 @@ local make_display = function (entry)
         entry.directory
     }
 end
+---Just bc its inconvenient otherwise
+---@param text string
+---@param width integer
+---@return string centered_text text with proper space padding to center on popup
+local function center_text(text, width)
+    local padding = math.floor((width - #text)/2)
+    local centered_text = string.rep(" ", padding) .. text .. string.rep(" ", padding)
+    return centered_text
+end
 
 function M.not_in_project_popup()
-    Popup.create({
-        "Testing",
-        "heres some more"
-    }, {
-        padding = {3,3,3,3},
-        border = {},
-        title = "Add Directory?",
-        enter = false
+    local buf = vim.api.nvim_create_buf(false, true)
+    local width = 80
+    local choices = ""
+    choices = center_text("(1) Add current directory (2) Blacklist current directory (3) Do nothing", width)
+    local prompt_head = center_text("Not in an existing project list. What would you like to do?", width)
+    Popup.create(buf,{
+        title = "Project Options",
+        pos = 'center',
+        minwidth = 80,
+        minheight = 6,
+        border = true,
     })
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+        "",
+        prompt_head,
+        "",
+        "",
+        choices,
+    })
+
+    vim.api.nvim_buf_set_keymap(buf, 'n', '1', ':!echo added<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '2', ':!echo blacklisted', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '3', ':!echo doing nothing', { noremap = true, silent = true })
+
+    vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', ':q!<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':q!<CR>', { noremap = true, silent = true })
 end
 
 M.subdir_picker = function (opts)

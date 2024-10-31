@@ -49,8 +49,7 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'PromanDebug',
     function ()
-        local path = Path:new("/Users/vrowhat/Documents/")
-        print(path:exists())
+        popups.not_in_project_popup()
     end,
     {
         nargs = 0,
