@@ -150,20 +150,24 @@ end
 --- @param project_name string
 function M.add_Project(project_name)
     cwd = vim.fn.getcwd()
+    project_name = project_name or vim.fs.basename(cwd)
     -- TODO: need to put the new added project at the top
     local projects = M.load_projects()
     if projects == nil then
         print("could not load projects")
         return
     end
-    local exists =  M.iterate_projects(function (project)
+    local exists = false
+    M.iterate_projects(function (project)
         local expanded_dir = vim.fn.expand(project.directory)
         if project_name == project.name then
-            vim.cmd('echo "Error: Directory already exists with name"')
-            return nil
+            print("Error: Directory already exists with name")
+            exists = true
+            return
         elseif expanded_dir == cwd then
-            vim.cmd('echo "Error: Project directory already exists"')
-            return nil
+            print("Error: Project directory already exists")
+            exists = true
+            return
         end
     end)
     if exists then return end

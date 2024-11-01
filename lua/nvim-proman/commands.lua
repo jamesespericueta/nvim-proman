@@ -12,7 +12,6 @@ function M.setup()
         util.add_Project(project_name)
     end,
     {
-        nargs = 1,
         desc = "Add a project to the project manager list"
     })
 

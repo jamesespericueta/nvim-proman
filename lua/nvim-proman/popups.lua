@@ -57,9 +57,9 @@ function M.not_in_project_popup()
         choices,
     })
 
-    vim.api.nvim_buf_set_keymap(buf, 'n', '1', ':!echo added<CR>', { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', '2', ':!echo blacklisted', { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', '3', ':!echo doing nothing', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '1', ':AddProject<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '2', ':!echo blacklisted<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '3', ':!echo doing nothing<CR>', { noremap = true, silent = true })
 
     vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', ':q!<CR>', { noremap = true, silent = true })
     vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':q!<CR>', { noremap = true, silent = true })
