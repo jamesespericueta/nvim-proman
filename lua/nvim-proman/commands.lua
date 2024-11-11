@@ -8,10 +8,10 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'AddProject',
     function (opts)
-        local project_name = opts.args
-        util.add_Project(project_name)
+        util.add_Project(opts.args)
     end,
     {
+        nargs = "?",
         desc = "Add a project to the project manager list"
     })
 

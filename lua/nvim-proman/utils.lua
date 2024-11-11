@@ -150,7 +150,9 @@ end
 --- @param project_name string
 function M.add_Project(project_name)
     cwd = vim.fn.getcwd()
-    project_name = project_name or vim.fs.basename(cwd)
+    if project_name == "" then
+        project_name = vim.fs.basename(cwd)
+    end
     -- TODO: need to put the new added project at the top
     local projects = M.load_projects()
     if projects == nil then
