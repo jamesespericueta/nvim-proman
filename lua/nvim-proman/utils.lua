@@ -125,8 +125,8 @@ end
 ---Removes project from project listing
 ---@param dir string | nil
 function M.remove_project(dir)
-    dir = dir or vim.fn.getcwd()
     local projects = M.load_projects()
+    dir = dir or vim.fn.getcwd()
 
     if projects == nil then return end
 
@@ -148,13 +148,13 @@ end
 
 --- Appends project name and directory the project json list
 --- @param project_name string
-function M.add_Project(project_name)
+function M.add_Project(project_name, directory)
+    local projects = M.load_projects()
+    if directory == nil then directory = vim.fn.getcwd() end
     cwd = vim.fn.getcwd()
     if project_name == "" then
         project_name = vim.fs.basename(cwd)
     end
-    -- TODO: need to put the new added project at the top
-    local projects = M.load_projects()
     if projects == nil then
         print("could not load projects")
         return
@@ -175,7 +175,7 @@ function M.add_Project(project_name)
     if exists then return end
 
     local new_project = {name = project_name, directory = cwd}
-    table.insert(projects, new_project)
+    table.insert(projects,1, new_project)
     local new_file = io.open(data_file, "w+")
     if new_file == nil then
         vim.cmd('echo "Unable to open file"')
@@ -185,12 +185,20 @@ function M.add_Project(project_name)
     new_file:write(new_json)
     new_file:close()
 end
+---comment
+---@param directory string directory of recent project
+---@param name string recently project name
+function M.updateProjects(directory, name)
+    M.remove_project(directory)
+    vim.defer_fn(function ()
+        M.add_Project(name, directory)
+    end, 10)
+end
 
 ---Gets subdirectories of input directory(if any)
 ---@param input string
 ---@return table subdirs Table of subdirectories (if the input directory is valid, other wise empty table)
 function M.get_subdirectories(input)
-    print(input)
     local subdirs = {}
     local is_directory = M.is_dir_valid(input)
 

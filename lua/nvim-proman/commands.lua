@@ -48,7 +48,8 @@ function M.setup()
     vim.api.nvim_create_user_command(
     'PromanDebug',
     function ()
-        popups.not_in_project_popup()
+        local projs = util.load_projects()
+        vim.print(projs)
     end,
     {
         nargs = 0,

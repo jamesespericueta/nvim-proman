@@ -145,9 +145,8 @@ M.open_telescope_picker = function(opts)
           actions.select_default:replace(function()
             actions.close(prompt_bufnr)
             local selection = action_state.get_selected_entry()
-            vim.defer_fn(function ()
-                util.cd_to_dir(selection.directory)
-            end, 10)
+            util.cd_to_dir(selection.directory)
+            util.updateProjects(selection.directory, selection.name)
         end)
         return true
     end,
